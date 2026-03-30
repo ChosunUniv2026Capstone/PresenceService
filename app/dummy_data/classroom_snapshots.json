@@ -1,0 +1,194 @@
+{
+  "B101": {
+    "aps": [
+      {
+        "apId": "phy0-ap0",
+        "ssid": "CU-B101-5G-1",
+        "sourceCommand": "iw dev phy0-ap0 station dump",
+        "stations": [
+          {
+            "macAddress": "36:68:99:4f:01:db",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -25,
+            "connectedSeconds": 123,
+            "rxBytes": 141910,
+            "txBytes": 193632
+          },
+          {
+            "macAddress": "8a:22:55:10:aa:11",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -42,
+            "connectedSeconds": 88,
+            "rxBytes": 58122,
+            "txBytes": 73311
+          }
+        ]
+      },
+      {
+        "apId": "phy1-ap0",
+        "ssid": "CU-B101-2G-1",
+        "sourceCommand": "iwinfo phy1-ap0 assoclist",
+        "stations": [
+          {
+            "macAddress": "9c:ef:d5:21:44:90",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -60,
+            "connectedSeconds": 44,
+            "rxBytes": 10800,
+            "txBytes": 9420
+          }
+        ]
+      },
+      {
+        "apId": "phy2-ap0",
+        "ssid": "CU-B101-5G-2",
+        "sourceCommand": "iw dev phy2-ap0 station dump",
+        "stations": [
+          {
+            "macAddress": "aa:bb:cc:dd:ee:01",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -38,
+            "connectedSeconds": 132,
+            "rxBytes": 220100,
+            "txBytes": 210004
+          }
+        ]
+      },
+      {
+        "apId": "phy3-ap0",
+        "ssid": "CU-B101-2G-2",
+        "sourceCommand": "ubus call hostapd.wlan3 get_clients",
+        "stations": [
+          {
+            "macAddress": "52:54:00:12:34:56",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -47,
+            "connectedSeconds": 95,
+            "rxBytes": 120101,
+            "txBytes": 94310
+          }
+        ]
+      }
+    ]
+  },
+  "B102": {
+    "aps": [
+      {
+        "apId": "phy4-ap0",
+        "ssid": "CU-B102-5G-1",
+        "sourceCommand": "iw dev phy4-ap0 station dump",
+        "stations": [
+          {
+            "macAddress": "52:54:00:12:34:57",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -31,
+            "connectedSeconds": 205,
+            "rxBytes": 250100,
+            "txBytes": 220004
+          }
+        ]
+      },
+      {
+        "apId": "phy5-ap0",
+        "ssid": "CU-B102-2G-1",
+        "sourceCommand": "iwinfo phy5-ap0 assoclist",
+        "stations": [
+          {
+            "macAddress": "52:54:00:12:34:58",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -53,
+            "connectedSeconds": 61,
+            "rxBytes": 83012,
+            "txBytes": 73001
+          }
+        ]
+      },
+      {
+        "apId": "phy6-ap0",
+        "ssid": "CU-B102-5G-2",
+        "sourceCommand": "ubus call hostapd.wlan6 get_clients",
+        "stations": [
+          {
+            "macAddress": "52:54:00:12:34:59",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -46,
+            "connectedSeconds": 77,
+            "rxBytes": 64000,
+            "txBytes": 58000
+          }
+        ]
+      }
+    ]
+  },
+  "C201": {
+    "aps": [
+      {
+        "apId": "phy7-ap0",
+        "ssid": "CU-C201-5G-1",
+        "sourceCommand": "iw dev phy7-ap0 station dump",
+        "stations": [
+          {
+            "macAddress": "52:54:00:12:34:5a",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -34,
+            "connectedSeconds": 143,
+            "rxBytes": 204800,
+            "txBytes": 193200
+          }
+        ]
+      },
+      {
+        "apId": "phy8-ap0",
+        "ssid": "CU-C201-2G-1",
+        "sourceCommand": "iwinfo phy8-ap0 assoclist",
+        "stations": [
+          {
+            "macAddress": "02:00:00:00:10:01",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -57,
+            "connectedSeconds": 52,
+            "rxBytes": 32768,
+            "txBytes": 25001
+          }
+        ]
+      },
+      {
+        "apId": "phy9-ap0",
+        "ssid": "CU-C201-5G-2",
+        "sourceCommand": "ubus call hostapd.wlan9 get_clients",
+        "stations": [
+          {
+            "macAddress": "02:00:00:00:10:02",
+            "authorized": true,
+            "authenticated": true,
+            "associated": true,
+            "signalDbm": -49,
+            "connectedSeconds": 86,
+            "rxBytes": 51200,
+            "txBytes": 40100
+          }
+        ]
+      }
+    ]
+  }
+}
