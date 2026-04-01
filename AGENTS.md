@@ -26,8 +26,10 @@
 이 경우 `$spec-first-dev-guard` 절차를 따른다.
 
 ## Git 규칙
-- 브랜치: `feat/presence/<slug>` 등
+- 브랜치: `feat/<slug>` 등
 - 커밋: `<type>(presence): <subject>`
+- `main` 에서 직접 commit 하지 않는다. bootstrap 이 설치한 shared hook 이 이를 차단한다.
+- 기능 시작은 `./start_feature.sh <slug>` 또는 `./start_feature.sh --worktree <slug>` 를 우선 사용한다.
 - 판정 규칙이 바뀌면 docs 와 테스트를 함께 수정한다.
 - 수집 데이터 형식이 바뀌면 architecture / convention 을 먼저 갱신한다.
 
