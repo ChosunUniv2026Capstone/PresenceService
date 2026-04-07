@@ -88,11 +88,18 @@ class DummyOverlayMutationRequest(BaseModel):
     stations: list[DummyOverlayStation] = Field(default_factory=list)
 
 
+class ClassroomNetworkThreshold(BaseModel):
+    ap_id: str = Field(alias="apId")
+    ssid: str
+    signal_threshold_dbm: int | None = Field(default=None, alias="signalThresholdDbm")
+
+
 class EligibilityRequest(BaseModel):
     student_id: str = Field(alias="studentId")
     course_id: str | None = Field(default=None, alias="courseId")
     classroom_id: str = Field(alias="classroomId")
     purpose: Purpose
+    classroom_networks: list[ClassroomNetworkThreshold] = Field(default_factory=list, alias="classroomNetworks")
     registered_devices: list[RegisteredDevice] = Field(default_factory=list, alias="registeredDevices")
 
 
@@ -101,6 +108,7 @@ class EligibilityEvidence(BaseModel):
     matched_ap_ids: list[str] = Field(default_factory=list, alias="matchedApIds")
     station_count: int = Field(alias="stationCount")
     signal_dbm: int | None = Field(default=None, alias="signalDbm")
+    signal_threshold_dbm: int | None = Field(default=None, alias="signalThresholdDbm")
     associated: bool | None = None
     authenticated: bool | None = None
     authorized: bool | None = None

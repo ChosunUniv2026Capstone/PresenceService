@@ -10,6 +10,7 @@ from app.models import (
     AccessPointSnapshot,
     AdminSnapshotEnvelope,
     ClassroomOverlay,
+    ClassroomNetworkThreshold,
     ClassroomSnapshot,
     DummyOverlayMutationRequest,
     DummyOverlayStation,
@@ -307,20 +308,36 @@ class PresenceService:
 
         matched_station: StationObservation | None = None
         matched_ap_ids: list[str] = []
+        matched_threshold: int | None = None
+        saw_matching_device = False
+        strongest_seen_station: StationObservation | None = None
+        strongest_seen_ap_id: str | None = None
         device_macs = {normalize_mac(device.mac_address) for device in request.registered_devices}
+        threshold_by_ap = {
+            network.ap_id: self.resolve_signal_threshold(network)
+            for network in request.classroom_networks
+        }
 
         for ap in snapshot.aps:
             for station in ap.stations:
-                if station.mac_address in device_macs and station.associated:
+                if station.mac_address not in device_macs:
+                    continue
+                saw_matching_device = True
+                if strongest_seen_station is None or station.signal_dbm > strongest_seen_station.signal_dbm:
+                    strongest_seen_station = station
+                    strongest_seen_ap_id = ap.ap_id
+                threshold = threshold_by_ap.get(ap.ap_id, -65)
+                if station.associated and station.signal_dbm >= threshold:
                     matched_station = station
                     matched_ap_ids.append(ap.ap_id)
+                    matched_threshold = threshold
                     break
             if matched_station:
                 break
 
         age_seconds = max(0, int((datetime.now(UTC) - snapshot.observed_at).total_seconds()))
 
-        if matched_station is None:
+        if matched_station is None and not saw_matching_device:
             return EligibilityResponse(
                 eligible=False,
                 reasonCode="DEVICE_NOT_PRESENT",
@@ -332,9 +349,31 @@ class PresenceService:
                     matchedApIds=[],
                     stationCount=sum(len(ap.stations) for ap in snapshot.aps),
                     signalDbm=None,
+                    signalThresholdDbm=None,
                     associated=None,
                     authenticated=None,
                     authorized=None,
+                    cacheHit=cache_hit,
+                ),
+            )
+
+        if matched_station is None:
+            fallback_threshold = threshold_by_ap.get(strongest_seen_ap_id, -65 if strongest_seen_ap_id else None)
+            return EligibilityResponse(
+                eligible=False,
+                reasonCode="NETWORK_NOT_ELIGIBLE",
+                matchedDeviceMac=strongest_seen_station.mac_address if strongest_seen_station else None,
+                observedAt=snapshot.observed_at,
+                snapshotAgeSeconds=age_seconds,
+                evidence=EligibilityEvidence(
+                    classroomId=request.classroom_id,
+                    matchedApIds=[strongest_seen_ap_id] if strongest_seen_ap_id else [],
+                    stationCount=sum(len(ap.stations) for ap in snapshot.aps),
+                    signalDbm=strongest_seen_station.signal_dbm if strongest_seen_station else None,
+                    signalThresholdDbm=fallback_threshold,
+                    associated=strongest_seen_station.associated if strongest_seen_station else None,
+                    authenticated=strongest_seen_station.authenticated if strongest_seen_station else None,
+                    authorized=strongest_seen_station.authorized if strongest_seen_station else None,
                     cacheHit=cache_hit,
                 ),
             )
@@ -350,9 +389,14 @@ class PresenceService:
                 matchedApIds=matched_ap_ids,
                 stationCount=sum(len(ap.stations) for ap in snapshot.aps),
                 signalDbm=matched_station.signal_dbm,
+                signalThresholdDbm=matched_threshold,
                 associated=matched_station.associated,
                 authenticated=matched_station.authenticated,
                 authorized=matched_station.authorized,
                 cacheHit=cache_hit,
             ),
         )
+
+    @staticmethod
+    def resolve_signal_threshold(network: ClassroomNetworkThreshold) -> int:
+        return network.signal_threshold_dbm if network.signal_threshold_dbm is not None else -65

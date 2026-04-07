@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.dummy_openwrt import DummySnapshotProvider
 from app.main import create_app
-from app.models import DummyOverlayMutationRequest, EligibilityRequest
+from app.models import ClassroomNetworkThreshold, DummyOverlayMutationRequest, EligibilityRequest
 from app.service import PresenceService
 
 
@@ -85,6 +85,12 @@ def eligibility_request(mac_address: str) -> EligibilityRequest:
         courseId="CSE116",
         classroomId="B101",
         purpose="attendance",
+        classroomNetworks=[
+            {"apId": "phy0-ap0", "ssid": "CU-B101-5G-1", "signalThresholdDbm": -65},
+            {"apId": "phy1-ap0", "ssid": "CU-B101-2G-1", "signalThresholdDbm": -65},
+            {"apId": "phy2-ap0", "ssid": "CU-B101-5G-2", "signalThresholdDbm": -65},
+            {"apId": "phy3-ap0", "ssid": "CU-B101-2G-2", "signalThresholdDbm": -65},
+        ],
         registeredDevices=[{"mac": mac_address, "label": "Choi Phone"}],
     )
 
@@ -134,7 +140,7 @@ def test_overlay_mutation_flips_eligibility_without_changing_matching_formula() 
 
     response = service.evaluate_eligibility(eligibility_request("52:54:00:12:34:56"))
     assert response.eligible is False
-    assert response.reason_code == "DEVICE_NOT_PRESENT"
+    assert response.reason_code == "NETWORK_NOT_ELIGIBLE"
     assert response.evidence.cache_hit is True
 
 
@@ -160,6 +166,29 @@ def test_reset_overlay_restores_baseline_snapshot() -> None:
     response = service.evaluate_eligibility(eligibility_request("52:54:00:12:34:56"))
     assert response.eligible is True
     assert response.reason_code == "OK"
+
+
+def test_signal_threshold_blocks_weak_connected_device() -> None:
+    service, _ = make_service()
+    request = eligibility_request("52:54:00:12:34:56")
+    request.classroom_networks = [
+        ClassroomNetworkThreshold(apId="phy3-ap0", ssid="CU-B101-2G-2", signalThresholdDbm=-40),
+    ]
+    response = service.evaluate_eligibility(request)
+    assert response.eligible is False
+    assert response.reason_code == "NETWORK_NOT_ELIGIBLE"
+    assert response.evidence.signal_threshold_dbm == -40
+
+
+def test_missing_threshold_uses_minus_65_fallback() -> None:
+    service, _ = make_service()
+    request = eligibility_request("52:54:00:12:34:56")
+    request.classroom_networks = [
+        ClassroomNetworkThreshold(apId="phy3-ap0", ssid="CU-B101-2G-2", signalThresholdDbm=None),
+    ]
+    response = service.evaluate_eligibility(request)
+    assert response.eligible is True
+    assert response.evidence.signal_threshold_dbm == -65
 
 
 def test_overlay_mutation_follows_lock_write_evict_prewarm_sequence() -> None:
