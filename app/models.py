@@ -61,6 +61,33 @@ class ClassroomSnapshot(BaseModel):
     aps: list[AccessPointSnapshot]
 
 
+class DummyOverlayStation(BaseModel):
+    mac_address: str = Field(alias="macAddress")
+    ap_id: str | None = Field(default=None, alias="apId")
+    present: bool = True
+    authorized: bool | None = None
+    authenticated: bool | None = None
+    associated: bool | None = None
+    signal_dbm: int | None = Field(default=None, alias="signalDbm")
+    connected_seconds: int | None = Field(default=None, alias="connectedSeconds")
+    rx_bytes: int | None = Field(default=None, alias="rxBytes")
+    tx_bytes: int | None = Field(default=None, alias="txBytes")
+
+    @field_validator("mac_address")
+    @classmethod
+    def normalize_overlay_mac(cls, value: str) -> str:
+        return normalize_mac(value)
+
+
+class ClassroomOverlay(BaseModel):
+    classroom_id: str = Field(alias="classroomId")
+    stations: list[DummyOverlayStation] = Field(default_factory=list)
+
+
+class DummyOverlayMutationRequest(BaseModel):
+    stations: list[DummyOverlayStation] = Field(default_factory=list)
+
+
 class EligibilityRequest(BaseModel):
     student_id: str = Field(alias="studentId")
     course_id: str | None = Field(default=None, alias="courseId")
@@ -97,6 +124,12 @@ class HealthResponse(BaseModel):
 
 class SnapshotEnvelope(BaseModel):
     cache_hit: bool = Field(alias="cacheHit")
+    snapshot: ClassroomSnapshot
+
+
+class AdminSnapshotEnvelope(BaseModel):
+    cache_hit: bool = Field(alias="cacheHit")
+    overlay_active: bool = Field(alias="overlayActive")
     snapshot: ClassroomSnapshot
 
 

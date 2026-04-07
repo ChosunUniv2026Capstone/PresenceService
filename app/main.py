@@ -8,7 +8,14 @@ from fastapi import FastAPI, HTTPException
 from app.cache import RedisSnapshotCache
 from app.config import Settings, get_settings
 from app.dummy_openwrt import DummySnapshotProvider
-from app.models import EligibilityRequest, EligibilityResponse, HealthResponse, SnapshotEnvelope
+from app.models import (
+    AdminSnapshotEnvelope,
+    DummyOverlayMutationRequest,
+    EligibilityRequest,
+    EligibilityResponse,
+    HealthResponse,
+    SnapshotEnvelope,
+)
 from app.service import PresenceService
 
 
@@ -43,6 +50,36 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LookupError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/admin/dummy/classrooms/{classroom_id}/snapshot", response_model=AdminSnapshotEnvelope)
+    def get_admin_snapshot(classroom_id: str) -> AdminSnapshotEnvelope:
+        service = get_presence_service()
+        try:
+            return service.get_admin_snapshot(classroom_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
+
+    @app.post("/admin/dummy/classrooms/{classroom_id}/overlay", response_model=AdminSnapshotEnvelope)
+    def apply_admin_overlay(classroom_id: str, request: DummyOverlayMutationRequest) -> AdminSnapshotEnvelope:
+        service = get_presence_service()
+        try:
+            return service.apply_overlay(classroom_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except TimeoutError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    @app.post("/admin/dummy/classrooms/{classroom_id}/overlay/reset", response_model=AdminSnapshotEnvelope)
+    def reset_admin_overlay(classroom_id: str) -> AdminSnapshotEnvelope:
+        service = get_presence_service()
+        try:
+            return service.reset_overlay(classroom_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
+        except TimeoutError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return app
 
