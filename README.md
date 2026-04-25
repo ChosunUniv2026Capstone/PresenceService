@@ -1,14 +1,16 @@
 # PresenceService
 
-Dummy OpenWrt-shaped presence service for the first attendance eligibility slice.
+Dummy OpenWrt-shaped presence service for the smart-class attendance and eligibility local MVP.
 
 ## What it does
 
 - exposes `GET /health`
 - exposes `GET /snapshots/classrooms/{classroom_id}`
 - exposes `POST /eligibility/check`
+- exposes admin dummy snapshot/overlay/reset endpoints for demo control
 - loads realistic dummy AP/station data from `app/dummy_data/classroom_snapshots.json`
-- caches classroom snapshots in Redis for 60 seconds
+- caches classroom snapshots in Redis for 60 seconds by default
+- evaluates registered device presence with classroom network/AP threshold evidence
 
 ## Environment
 
@@ -30,6 +32,10 @@ uvicorn app.main:app --reload --port 8001
 
 ## Run tests
 
+Run from the `PresenceService` directory with the app package on `PYTHONPATH`:
+
 ```bash
-pytest
+PYTHONPATH=. pytest -q
 ```
+
+Current tests pass with Pydantic alias warnings; warning cleanup is a follow-up quality task, not a test failure.
