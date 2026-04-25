@@ -28,7 +28,8 @@ jobs:
         id: image
         shell: bash
         run: |
-          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "name=ghcr.io/${owner}/presence-service" >> "$GITHUB_OUTPUT"
 
       - name: Generate image metadata
         id: meta
