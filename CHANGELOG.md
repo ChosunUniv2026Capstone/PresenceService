@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.2.0...v0.2.1) (2026-05-14)
+
+
+### Chores
+
+* refresh package version after live full-feature E2E validation
+
 ## [0.2.0](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.1.0...v0.2.0) (2026-04-26)
 
 
