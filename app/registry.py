@@ -67,7 +67,14 @@ class StaticRegistryClient:
         return parse_registry(self.payload)
 
 
+def _unwrap_envelope(payload: dict[str, Any]) -> dict[str, Any]:
+    if payload.get("success") is True and isinstance(payload.get("data"), dict):
+        return payload["data"]
+    return payload
+
+
 def parse_registry(payload: dict[str, Any]) -> RegistrySnapshot:
+    payload = _unwrap_envelope(payload)
     access_points = []
     for raw_ap in payload.get("accessPoints", []):
         interfaces = []
