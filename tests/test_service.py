@@ -332,6 +332,68 @@ def test_collector_push_accepts_valid_token_and_updates_ap_snapshot() -> None:
     assert eligibility.evidence.matched_ap_ids == ["phy0-ap0"]
 
 
+def test_admin_snapshot_prefers_collector_snapshot_from_redis() -> None:
+    service, cache = make_service()
+    service.registry_client = StaticRegistryClient({
+        "accessPoints": [
+            {
+                "collectorApId": "openwrt-a",
+                "status": "active",
+                "tokenHash": "hash",
+                "tokenVersion": 1,
+                "interfaces": [
+                    {
+                        "interfaceId": "phy0-ap0",
+                        "classroomId": "B101",
+                        "classroomNetworkApId": "phy0-ap0",
+                        "ssid": "CU-B101-5G-1",
+                        "signalThresholdDbm": -65,
+                    }
+                ],
+            }
+        ]
+    })
+    cache.collector_snapshots["openwrt-a"] = {
+        "collectorApId": "openwrt-a",
+        "observedAt": datetime.now(UTC).isoformat(),
+        "interfaces": [
+            {
+                "interfaceId": "phy0-ap0",
+                "classroomId": "B101",
+                "apId": "phy0-ap0",
+                "ssid": "CU-B101-5G-1",
+                "stations": [
+                    {
+                        "macAddress": "52:54:00:12:34:56",
+                        "signalDbm": -44,
+                        "connectedSeconds": 12,
+                        "rxBytes": 100,
+                        "txBytes": 200,
+                    }
+                ],
+            }
+        ],
+    }
+
+    snapshot = service.get_admin_snapshot("B101")
+
+    assert snapshot.overlay_active is False
+    assert snapshot.snapshot.collection_mode == "openwrt-push"
+    assert snapshot.snapshot.aps[0].ap_id == "phy0-ap0"
+    assert snapshot.snapshot.aps[0].stations[0].mac_address == "52:54:00:12:34:56"
+
+
+def test_admin_snapshot_force_refresh_evicts_dummy_classroom_cache() -> None:
+    service, cache = make_service()
+
+    service.get_admin_snapshot("B101")
+    cache.operations.clear()
+
+    service.get_admin_snapshot("B101", force_refresh=True)
+
+    assert "delete_snapshot:B101" in cache.operations
+
+
 def test_collector_push_rejects_invalid_token_without_state_update() -> None:
     service, cache = make_service()
     service.ap_token_hash_secret = "test-pepper"

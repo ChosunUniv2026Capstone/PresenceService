@@ -89,10 +89,10 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.get("/admin/dummy/classrooms/{classroom_id}/snapshot", response_model=AdminSnapshotEnvelope)
-    def get_admin_snapshot(classroom_id: str) -> AdminSnapshotEnvelope:
+    def get_admin_snapshot(classroom_id: str, refresh: bool = False) -> AdminSnapshotEnvelope:
         service = get_presence_service()
         try:
-            return service.get_admin_snapshot(classroom_id)
+            return service.get_admin_snapshot(classroom_id, force_refresh=refresh)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
 
