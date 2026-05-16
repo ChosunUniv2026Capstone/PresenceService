@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
 from app.dummy_openwrt import DummySnapshotProvider
 from app.main import create_app
-from app.models import ClassroomNetworkThreshold, DummyOverlayMutationRequest, EligibilityRequest
+from app.models import ClassroomNetworkThreshold, CollectorSnapshotRequest, DummyOverlayMutationRequest, EligibilityRequest
+from app.registry import StaticRegistryClient
 from app.service import PresenceService
 
 
@@ -17,6 +19,8 @@ class InMemoryCache:
         self.overlays = {}
         self.locks = set()
         self.operations: list[str] = []
+        self.collector_snapshots = {}
+        self.collector_nonces = set()
 
     def get_snapshot(self, classroom_id: str):
         self.operations.append(f"get_snapshot:{classroom_id}")
@@ -41,6 +45,22 @@ class InMemoryCache:
     def clear_overlay(self, classroom_id: str) -> None:
         self.operations.append(f"clear_overlay:{classroom_id}")
         self.overlays.pop(classroom_id, None)
+
+    def get_collector_snapshot(self, collector_ap_id: str):
+        self.operations.append(f"get_collector_snapshot:{collector_ap_id}")
+        return self.collector_snapshots.get(collector_ap_id)
+
+    def set_collector_snapshot(self, collector_ap_id: str, payload: dict, ttl_seconds: int) -> None:
+        self.operations.append(f"set_collector_snapshot:{collector_ap_id}")
+        self.collector_snapshots[collector_ap_id] = payload
+
+    def remember_collector_nonce(self, collector_ap_id: str, nonce: str, ttl_seconds: int) -> bool:
+        self.operations.append(f"remember_collector_nonce:{collector_ap_id}:{nonce}")
+        key = (collector_ap_id, nonce)
+        if key in self.collector_nonces:
+            return False
+        self.collector_nonces.add(key)
+        return True
 
     def acquire_refresh_lock(self, classroom_id: str, ttl_seconds: int) -> bool:
         self.operations.append(f"acquire_lock:{classroom_id}")
@@ -259,3 +279,80 @@ def test_admin_overlay_endpoints_return_effective_snapshot_immediately(monkeypat
     )
     assert restored_response.status_code == 200
     assert restored_response.json()["eligible"] is True
+
+
+def test_collector_push_accepts_valid_token_and_updates_ap_snapshot() -> None:
+    service, cache = make_service()
+    token = "demo-token"
+    service.ap_token_hash_secret = "test-pepper"
+    service.registry_client = StaticRegistryClient({
+        "accessPoints": [
+            {
+                "collectorApId": "openwrt-a",
+                "status": "active",
+                "tokenHash": service._hash_ap_token(token),
+                "tokenVersion": 1,
+                "interfaces": [
+                    {
+                        "interfaceId": "phy0-ap0",
+                        "classroomId": "B101",
+                        "classroomNetworkApId": "phy0-ap0",
+                        "ssid": "CU-B101-5G-1",
+                        "signalThresholdDbm": -65,
+                    }
+                ],
+            }
+        ]
+    })
+    request = CollectorSnapshotRequest(
+        collectorApId="openwrt-a",
+        observedAt=datetime.now(UTC).isoformat(),
+        diagnosticClassroomId="B101",
+        interfaces=[
+            {
+                "interfaceId": "phy0-ap0",
+                "ssid": "CU-B101-5G-1",
+                "stations": [{"mac": "52:54:00:12:34:56", "signalDbm": -44}],
+            }
+        ],
+    )
+    response = service.ingest_collector_snapshot(
+        collector_ap_id="openwrt-a",
+        authorization=f"Bearer {token}",
+        request=request,
+        nonce="n1",
+        timestamp_header=datetime.now(UTC).isoformat(),
+    )
+    assert response.accepted is True
+    assert cache.collector_snapshots["openwrt-a"]["interfaces"][0]["classroomId"] == "B101"
+
+    eligibility = service.evaluate_eligibility(eligibility_request("52:54:00:12:34:56"))
+    assert eligibility.eligible is True
+    assert eligibility.reason_code == "OK"
+    assert eligibility.evidence.matched_ap_ids == ["phy0-ap0"]
+
+
+def test_collector_push_rejects_invalid_token_without_state_update() -> None:
+    service, cache = make_service()
+    service.ap_token_hash_secret = "test-pepper"
+    service.registry_client = StaticRegistryClient({
+        "accessPoints": [{"collectorApId": "openwrt-a", "status": "active", "tokenHash": service._hash_ap_token("good"), "tokenVersion": 1, "interfaces": [{"interfaceId": "phy0-ap0", "classroomId": "B101", "classroomNetworkApId": "phy0-ap0", "ssid": "CU-B101-5G-1"}]}]
+    })
+    request = CollectorSnapshotRequest(collectorApId="openwrt-a", observedAt=datetime.now(UTC).isoformat(), interfaces=[{"interfaceId": "phy0-ap0", "stations": []}])
+    try:
+        service.ingest_collector_snapshot(collector_ap_id="openwrt-a", authorization="Bearer bad", request=request, nonce="n1", timestamp_header=datetime.now(UTC).isoformat())
+    except PermissionError as exc:
+        assert str(exc) == "COLLECTOR_TOKEN_INVALID"
+    else:
+        raise AssertionError("expected invalid token")
+    assert cache.collector_snapshots == {}
+
+
+def test_classroom_eligibility_returns_ap_offline_when_zero_online_aps() -> None:
+    service, _ = make_service()
+    service.registry_client = StaticRegistryClient({
+        "accessPoints": [{"collectorApId": "openwrt-a", "status": "active", "tokenHash": "hash", "tokenVersion": 1, "interfaces": [{"interfaceId": "phy0-ap0", "classroomId": "B101", "classroomNetworkApId": "phy0-ap0", "ssid": "CU-B101-5G-1"}]}]
+    })
+    response = service.evaluate_eligibility(eligibility_request("52:54:00:12:34:56"))
+    assert response.eligible is False
+    assert response.reason_code == "AP_OFFLINE"
