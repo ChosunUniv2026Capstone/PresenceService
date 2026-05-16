@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Any
 
 import redis
-from fastapi import FastAPI, Header, HTTPException, status
+from fastapi import Body, FastAPI, Header, HTTPException, status
 
 from app.cache import RedisSnapshotCache
 from app.config import Settings, get_settings
@@ -57,7 +58,7 @@ def create_app() -> FastAPI:
     @app.post("/collector/aps/{collector_ap_id}/snapshot", response_model=CollectorIngestResponse)
     def ingest_collector_snapshot(
         collector_ap_id: str,
-        request: CollectorSnapshotRequest,
+        payload: dict[str, Any] = Body(...),
         authorization: str | None = Header(default=None, alias="Authorization"),
         x_collector_nonce: str | None = Header(default=None, alias="X-Collector-Nonce"),
         x_collector_timestamp: str | None = Header(default=None, alias="X-Collector-Timestamp"),
@@ -67,7 +68,7 @@ def create_app() -> FastAPI:
             return service.ingest_collector_snapshot(
                 collector_ap_id=collector_ap_id,
                 authorization=authorization,
-                request=request,
+                request=CollectorSnapshotRequest.model_validate(payload),
                 nonce=x_collector_nonce,
                 timestamp_header=x_collector_timestamp,
             )
@@ -79,10 +80,10 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": str(exc), "message": "collector snapshot rejected"}) from exc
 
     @app.post("/eligibility/check", response_model=EligibilityResponse)
-    def check_eligibility(request: EligibilityRequest) -> EligibilityResponse:
+    def check_eligibility(payload: dict[str, Any] = Body(...)) -> EligibilityResponse:
         service = get_presence_service()
         try:
-            return service.evaluate_eligibility(request)
+            return service.evaluate_eligibility(EligibilityRequest.model_validate(payload))
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except LookupError as exc:
@@ -99,10 +100,10 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/admin/dummy/classrooms/{classroom_id}/overlay", response_model=AdminSnapshotEnvelope)
-    def apply_admin_overlay(classroom_id: str, request: DummyOverlayMutationRequest) -> AdminSnapshotEnvelope:
+    def apply_admin_overlay(classroom_id: str, payload: dict[str, Any] = Body(...)) -> AdminSnapshotEnvelope:
         service = get_presence_service()
         try:
-            return service.apply_overlay(classroom_id, request)
+            return service.apply_overlay(classroom_id, DummyOverlayMutationRequest.model_validate(payload))
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
         except ValueError as exc:
