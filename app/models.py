@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 def normalize_mac(value: str) -> str:
@@ -122,6 +122,44 @@ class EligibilityResponse(BaseModel):
     observed_at: datetime | None = Field(default=None, alias="observedAt")
     snapshot_age_seconds: int | None = Field(default=None, alias="snapshotAgeSeconds")
     evidence: EligibilityEvidence
+
+
+class CollectorStationObservation(BaseModel):
+    mac_address: str = Field(validation_alias=AliasChoices("mac", "macAddress"), serialization_alias="macAddress")
+    authorized: bool = True
+    authenticated: bool = True
+    associated: bool = True
+    signal_dbm: int = Field(default=-50, validation_alias=AliasChoices("signalDbm", "signal_dbm"), serialization_alias="signalDbm")
+    connected_seconds: int = Field(default=0, validation_alias=AliasChoices("connectedSeconds", "connected_seconds"), serialization_alias="connectedSeconds")
+    rx_bytes: int = Field(default=0, validation_alias=AliasChoices("rxBytes", "rx_bytes"), serialization_alias="rxBytes")
+    tx_bytes: int = Field(default=0, validation_alias=AliasChoices("txBytes", "tx_bytes"), serialization_alias="txBytes")
+
+    @field_validator("mac_address")
+    @classmethod
+    def normalize_collector_mac(cls, value: str) -> str:
+        return normalize_mac(value)
+
+
+class CollectorInterfaceSnapshot(BaseModel):
+    interface_id: str = Field(alias="interfaceId")
+    ssid: str | None = None
+    bssid: str | None = None
+    stations: list[CollectorStationObservation] = Field(default_factory=list)
+
+
+class CollectorSnapshotRequest(BaseModel):
+    collector_ap_id: str = Field(alias="collectorApId")
+    observed_at: datetime = Field(alias="observedAt")
+    diagnostic_classroom_id: str | None = Field(default=None, alias="diagnosticClassroomId")
+    interfaces: list[CollectorInterfaceSnapshot] = Field(default_factory=list)
+
+
+class CollectorIngestResponse(BaseModel):
+    accepted: bool
+    collector_ap_id: str = Field(alias="collectorApId")
+    accepted_interface_count: int = Field(alias="acceptedInterfaceCount")
+    station_count: int = Field(alias="stationCount")
+    observed_at: datetime = Field(alias="observedAt")
 
 
 class HealthResponse(BaseModel):
