@@ -383,6 +383,54 @@ def test_admin_snapshot_prefers_collector_snapshot_from_redis() -> None:
     assert snapshot.snapshot.aps[0].stations[0].mac_address == "52:54:00:12:34:56"
 
 
+def test_admin_demo_snapshot_bypasses_collector_snapshot() -> None:
+    service, cache = make_service()
+    service.registry_client = StaticRegistryClient({
+        "accessPoints": [
+            {
+                "collectorApId": "openwrt-a",
+                "status": "active",
+                "tokenHash": "hash",
+                "tokenVersion": 1,
+                "interfaces": [
+                    {
+                        "interfaceId": "phy0-ap0",
+                        "classroomId": "B101",
+                        "classroomNetworkApId": "phy0-ap0",
+                        "ssid": "CU-B101-5G-1",
+                    }
+                ],
+            }
+        ]
+    })
+    cache.collector_snapshots["openwrt-a"] = {
+        "collectorApId": "openwrt-a",
+        "observedAt": datetime.now(UTC).isoformat(),
+        "interfaces": [
+            {
+                "interfaceId": "phy0-ap0",
+                "classroomId": "B101",
+                "apId": "phy0-ap0",
+                "ssid": "CU-B101-5G-1",
+                "stations": [
+                    {
+                        "macAddress": "52:54:00:12:34:56",
+                        "signalDbm": -44,
+                        "connectedSeconds": 12,
+                        "rxBytes": 100,
+                        "txBytes": 200,
+                    }
+                ],
+            }
+        ],
+    }
+
+    snapshot = service.get_admin_snapshot("B101", source="demo")
+
+    assert snapshot.snapshot.collection_mode == "dummy-openwrt"
+    assert snapshot.snapshot.aps[0].source_command == "iw dev phy0-ap0 station dump"
+
+
 def test_admin_snapshot_force_refresh_evicts_dummy_classroom_cache() -> None:
     service, cache = make_service()
 

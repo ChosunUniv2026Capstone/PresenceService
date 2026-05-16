@@ -89,12 +89,14 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     @app.get("/admin/dummy/classrooms/{classroom_id}/snapshot", response_model=AdminSnapshotEnvelope)
-    def get_admin_snapshot(classroom_id: str, refresh: bool = False) -> AdminSnapshotEnvelope:
+    def get_admin_snapshot(classroom_id: str, refresh: bool = False, source: str = "auto") -> AdminSnapshotEnvelope:
         service = get_presence_service()
         try:
-            return service.get_admin_snapshot(classroom_id, force_refresh=refresh)
+            return service.get_admin_snapshot(classroom_id, force_refresh=refresh, source=source)
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="CLASSROOM_NOT_MAPPED") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/admin/dummy/classrooms/{classroom_id}/overlay", response_model=AdminSnapshotEnvelope)
     def apply_admin_overlay(classroom_id: str, request: DummyOverlayMutationRequest) -> AdminSnapshotEnvelope:

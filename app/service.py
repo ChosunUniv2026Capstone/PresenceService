@@ -248,22 +248,32 @@ class PresenceService:
         self.cache.set_snapshot(snapshot, self.snapshot_ttl_seconds)
         return snapshot, False
 
-    def get_admin_snapshot(self, classroom_id: str, *, force_refresh: bool = False) -> AdminSnapshotEnvelope:
-        collector_snapshot = self._collector_snapshot_for_classroom(classroom_id)
-        if collector_snapshot is not None:
-            snapshot, cache_hit = collector_snapshot
-            if snapshot is None:
-                snapshot = ClassroomSnapshot(
-                    classroomId=classroom_id,
-                    observedAt=datetime.now(UTC),
-                    collectionMode="openwrt-push",
-                    aps=[],
+    def get_admin_snapshot(
+        self,
+        classroom_id: str,
+        *,
+        force_refresh: bool = False,
+        source: str = "auto",
+    ) -> AdminSnapshotEnvelope:
+        if source not in {"auto", "demo"}:
+            raise ValueError("ADMIN_SNAPSHOT_SOURCE_INVALID")
+
+        if source != "demo":
+            collector_snapshot = self._collector_snapshot_for_classroom(classroom_id)
+            if collector_snapshot is not None:
+                snapshot, cache_hit = collector_snapshot
+                if snapshot is None:
+                    snapshot = ClassroomSnapshot(
+                        classroomId=classroom_id,
+                        observedAt=datetime.now(UTC),
+                        collectionMode="openwrt-push",
+                        aps=[],
+                    )
+                return AdminSnapshotEnvelope(
+                    cacheHit=cache_hit,
+                    overlayActive=False,
+                    snapshot=snapshot,
                 )
-            return AdminSnapshotEnvelope(
-                cacheHit=cache_hit,
-                overlayActive=False,
-                snapshot=snapshot,
-            )
 
         if force_refresh:
             self.cache.delete_snapshot(classroom_id)
