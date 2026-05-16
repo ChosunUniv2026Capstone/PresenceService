@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.3.0...v0.3.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **presence:** accept enveloped registry to restore collector auth ([99c76cb](https://github.com/ChosunUniv2026Capstone/PresenceService/commit/99c76cb237f9edcc4a31ef30a8424708f13d7e99))
+
 ## [0.3.0](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.2.1...v0.3.0) (2026-05-16)
 
 
