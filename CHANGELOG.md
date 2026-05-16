@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.2.1...v0.3.0) (2026-05-16)
+
+
+### Features
+
+* **presence:** expose collector snapshots to admin dashboard ([c26b3a9](https://github.com/ChosunUniv2026Capstone/PresenceService/commit/c26b3a9440fc02dde4e1c841614ba920ee2630a6))
+* **presence:** ingest OpenWrt collector snapshots ([2873d79](https://github.com/ChosunUniv2026Capstone/PresenceService/commit/2873d79c935412325fe5d5a33c06d1bd34df5a87))
+* **presence:** support demo admin snapshot source ([db9e687](https://github.com/ChosunUniv2026Capstone/PresenceService/commit/db9e6873963b9d7c4ee5a5c59a8e3a70ce3fa6e2))
+
 ## [0.2.1](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.2.0...v0.2.1) (2026-05-14)
 
 
