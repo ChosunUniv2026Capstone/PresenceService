@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.3.1...v0.3.2) (2026-05-16)
+
+
+### Bug Fixes
+
+* **presence:** validate aliased request bodies explicitly ([4547709](https://github.com/ChosunUniv2026Capstone/PresenceService/commit/4547709c22dc8d7f14fe813a7b0a8dcb15fe5ca1))
+
 ## [0.3.1](https://github.com/ChosunUniv2026Capstone/PresenceService/compare/v0.3.0...v0.3.1) (2026-05-16)
 
 
